@@ -1,0 +1,232 @@
+<html>
+
+<head>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+  <meta charset="UTF-8">
+  <style>
+/* 
+ * Always set the map height explicitly to define the size of the div element
+ * that contains the map. 
+ */
+#map {
+  height: 720px;
+}
+  </style>
+</head>
+
+<body>
+  <script src="jquery.js"></script>
+  <script>(g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})
+    ({key: "AIzaSyB41DRUbKWJHPxaFjMAwdrzWzbVKartNGg", v: "weekly"});</script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+    crossorigin="anonymous"></script>
+
+  <script src="data.js"></script>
+  <script>
+
+    let map, markers = [];
+
+
+    function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+      const R = 6371; // Radius of the earth in km
+      const dLat = deg2rad(lat2 - lat1);  // deg2rad below
+      const dLon = deg2rad(lon2 - lon1);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2)
+        ;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const d = R * c; // Distance in km
+      return d;
+    }
+
+    function deg2rad(deg) {
+      return deg * (Math.PI / 180)
+    }
+
+    function setMapOnAll(map) {
+      for (let i = 0; i < markers.length; i++) {
+        markers[i].setMap(map);
+      }
+    }
+
+    function getLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(showPosition);
+      } else { 
+        x.innerHTML = "Geolocation is not supported by this browser.";
+      }
+    }
+
+    function showPosition(position) {
+      $('#lati').val(position.coords.latitude); 
+      $('#long').val(position.coords.longitude);
+    }
+
+    function findClose() {
+
+
+      const lati = document.getElementById('lati').value || 37.4;
+      const long = document.getElementById('long').value || 22.4;
+      const ncount = document.getElementById('ncount').value || 10;
+
+      for (ant of antennas) {
+        //ant.distance = Math.sqrt((ant.latitude - latt)**2 + (ant.longitude - long)**2);
+        ant.distance = (getDistanceFromLatLonInKm(lati, long, ant.latitude, ant.longitude)).toFixed(2);
+      }
+
+      antennas.sort((a, b) => a.distance - b.distance);
+
+      $('.rowsfordeletion').remove();
+      setMapOnAll(null);
+      markers = [];
+
+
+      for (ant of antennas.slice(0, ncount)) {
+        let {id, company, legal, address, municipality, latitude, longitude, distance} = ant;
+        let row = `<tr class="rowsfordeletion">
+                        <td>${id}</td>
+                        <td>${company}</td>
+                        <td>${legal}</td>
+                        <td>${address}</td>
+                        <td>${municipality}</td>
+                        <td>${latitude}</td>
+                        <td>${longitude}</td>
+                        <td>${distance}</td>
+                     </tr>`;
+        $('table').find('tbody').append(row);
+
+        try {
+          const infowindow = new google.maps.InfoWindow({
+            content: `<span class="badge text-bg-secondary rounded-pill">Antenna #${id}</span>
+                      <hr>
+                      <h1 class="text-${company=='OTE'?'primary':company=='VODAFONE'?'danger':company=='COSMOTE'?'success':'secondary'}">${company}</h1>
+                      <h3 class="">${legal}</h3>
+                      <hr>
+                      <p>${address}</p>
+                      <p>${municipality}</p>
+                      <hr>
+                      <h1 class="text-secondary">${distance} km</h1>
+                      `,
+            ariaLabel: id,
+          });
+
+          let marker = new google.maps.Marker({
+            position: {
+              lat: +latitude,
+              lng: +longitude
+            },
+            map: map,
+            title: id
+          });
+
+          marker.addListener("click", () => {
+            infowindow.open({
+              anchor: marker,
+              map,
+            });
+          });
+          markers.push(marker);
+        } catch (e) {
+
+        }
+      }
+
+
+
+
+    }
+
+
+
+
+    async function initMap() {
+      const { Map } = await google.maps.importLibrary("maps");
+
+      map = new Map(document.getElementById("map"), {
+        center: { lat: 37.4, lng: 22.4 },
+        zoom: 8,
+      });
+    }
+
+    
+
+    initMap();
+
+
+  </script>
+
+
+  <div class="container col-xl-10 col-xxl-8 px-4 py-5">
+    <div class="row align-items-center g-lg-5 py-5">
+      <div class="col-lg-7 text-center text-lg-start">
+        <h1 class="display-4 fw-bold lh-1 text-body-emphasis mb-3">Find the Closest Antennas</h1>
+        <p class="col-lg-10 fs-4">Please input your coordinates and the number of antennas to calculate your distance from.</p>
+        <p class="col-lg-10 fs-4">The system searches a 2000+ entries database of Peloponnese to find the closest antennas and mark them on the map.</p>
+        <small class="text-body-secondary">Eyaggelos Giannoulis - vagmaster@gmail.com</small>
+      </div>
+      <div class="col-md-10 mx-auto col-lg-5">
+        <form class="p-4 p-md-5 border rounded-3 bg-body-tertiary">
+          <button type="button" class="w-100 btn btn-lg btn-secondary" onclick="getLocation()">Location</button>
+          <hr class="my-4">
+          <div class="form-floating mb-3">
+            <input type="text" class="form-control" id="lati" placeholder="Latitude">
+            <label for="lati">Latitude</label>
+          </div>
+          <div class="form-floating mb-3">
+            <input type="text" class="form-control" id="long" placeholder="Longitude">
+            <label for="long">Longitude</label>
+          </div>
+          <hr class="my-4">
+
+          <div class="form-floating mb-3">
+            <input type="text" class="form-control" id="ncount" placeholder="Νumber of Antennas">
+            <label for="ncount">Νumber of Antennas</label>
+          </div>
+
+          <hr class="my-4">
+
+          <button type="button" class="w-100 btn btn-lg btn-primary" onclick="findClose()">Search</button>
+
+
+        </form>
+      </div>
+    </div>
+    <hr>
+    <div class="row align-items-center g-lg-5 py-5">
+      <div class="col-lg-12 text-center text-lg-start">
+        <table id="myTable" class="table table-dark table-striped">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Company</th>
+              <th scope="col">Legal</th>
+              <th scope="col">Address</th>
+              <th scope="col">Municipality</th>
+              <th scope="col">Latitude</th>
+              <th scope="col">Longitude</th>
+              <th scope="col">Distance (km)</th>
+            </tr>
+          </thead>
+          <tbody>
+
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <hr>
+    <div class="row align-items-center g-lg-5 py-5">
+      <div class="col-lg-12 text-center text-lg-start">
+
+        <div id="map"></div>
+
+      </div>
+    </div>
+
+  </div>
+</body>
+
+</html>
