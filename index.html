@@ -26,7 +26,7 @@
   <script src="data.js"></script>
   <script>
 
-    let map, markers = [];
+    let map, AdvancedMarkerElement, markers = [];
 
 
     function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
@@ -64,6 +64,7 @@
     function showPosition(position) {
       $('#lati').val(position.coords.latitude); 
       $('#long').val(position.coords.longitude);
+
     }
 
     function findClose() {
@@ -83,6 +84,21 @@
       $('.rowsfordeletion').remove();
       setMapOnAll(null);
       markers = [];
+
+        // Change the background color.
+        
+        const pinBackground = new google.maps.marker.PinElement({
+           background: "white",
+           borderColor: "#006699",
+           glyphColor: "#006699",
+         });
+         const markerViewBackground = new google.maps.marker.AdvancedMarkerElement({
+          map,
+          position: { lat: +lati, lng: +long },
+          content: pinBackground.element,
+         });
+         markers.push(markerViewBackground);
+
 
 
       for (ant of antennas.slice(0, ncount)) {
@@ -145,12 +161,16 @@
 
     async function initMap() {
       const { Map } = await google.maps.importLibrary("maps");
+      const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker");
+
 
       map = new Map(document.getElementById("map"), {
         center: { lat: 37.4, lng: 22.4 },
         zoom: 8,
+        mapId: "4504f8b37365c3d0"
       });
     }
+
 
     
 
